@@ -1,0 +1,151 @@
+__all__ = [
+	"CLOEXEC",
+	"NONBLOCK",
+
+	"ACCESS",
+	"MODIFY",
+	"ATTRIB",
+	"CLOSE_WRITE",
+	"CLOSE_NOWRITE",
+	"CLOSE",
+	"OPEN",
+	"MOVED_FROM",
+	"MOVED_TO",
+	"MOVE",
+	"CREATE",
+	"DELETE",
+	"DELETE_SELF",
+	"MOVE_SELF",
+	"UNMOUNT",
+	"Q_OVERFLOW",
+	"IGNORED",
+	"ONLYDIR",
+	"DONT_FOLLOW",
+	"ADD_MASK",
+	"ISDIR",
+	"ONESHOT",
+	"ALL_EVENTS",
+
+	"event",
+
+	"init",
+	"add_watch",
+	"rm_watch",
+	"unpack_event",
+	"unpack_events",
+]
+
+import ctypes
+import ctypes.util
+import os
+import struct
+
+def errcheck(result, func, arguments):
+	if result < 0:
+		errno = ctypes.get_errno()
+		raise OSError(errno, os.strerror(errno))
+
+	return result
+
+libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+libc.inotify_init.argtypes = []
+libc.inotify_init.errcheck = errcheck
+
+libc.inotify_init1.argtypes = [ctypes.c_int]
+libc.inotify_init1.errcheck = errcheck
+
+libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+libc.inotify_add_watch.errcheck = errcheck
+
+libc.inotify_rm_watch.argtypes = [ctypes.c_int, ctypes.c_int]
+libc.inotify_rm_watch.errcheck = errcheck
+
+CLOEXEC         = 0o02000000
+NONBLOCK        = 0o00004000
+
+ACCESS          = 0x00000001
+MODIFY          = 0x00000002
+ATTRIB          = 0x00000004
+CLOSE_WRITE     = 0x00000008
+CLOSE_NOWRITE   = 0x00000010
+CLOSE           = CLOSE_WRITE | CLOSE_NOWRITE
+OPEN            = 0x00000020
+MOVED_FROM      = 0x00000040
+MOVED_TO        = 0x00000080
+MOVE            = MOVED_FROM | MOVED_TO
+CREATE          = 0x00000100
+DELETE          = 0x00000200
+DELETE_SELF     = 0x00000400
+MOVE_SELF       = 0x00000800
+UNMOUNT         = 0x00002000
+Q_OVERFLOW      = 0x00004000
+IGNORED         = 0x00008000
+ONLYDIR         = 0x01000000
+DONT_FOLLOW     = 0x02000000
+ADD_MASK        = 0x20000000
+ISDIR           = 0x40000000
+ONESHOT         = 0x80000000
+ALL_EVENTS      = ACCESS | MODIFY | ATTRIB | CLOSE | OPEN | MOVE | CREATE | DELETE | DELETE_SELF | MOVE_SELF
+
+class event(object):
+	""" See inotify(7) man page. """
+
+	def __init__(self, wd, mask, cookie, name):
+		self.wd = wd
+		self.mask = mask
+		self.cookie = cookie
+		self.name = name
+
+	def __repr__(self):
+		return "inotify.event(wd=%d, mask=0x%x, cookie=%d, name=%r)" % (self.wd, self.mask, self.cookie, self.name)
+
+def init(flags=0):
+	""" See inotify_init(2) man page. """
+
+	if flags:
+		return libc.inotify_init1(flags)
+	else:
+		return libc.inotify_init()
+
+def add_watch(fd, name, mask):
+	""" See inotify_add_watch(2) man page. """
+
+	return libc.inotify_add_watch(fd, name, mask)
+
+def rm_watch(fd, wd):
+	""" See inotify_rm_watch(2) man page. """
+
+	libc.inotify_rm_watch(fd, wd)
+
+def unpack_event(buf):
+	""" Returns the first event from buf and the rest of the buf. """
+
+	headsize = 16
+
+	wd, mask, cookie, namesize = struct.unpack("iIII", buf[:headsize])
+	name = buf[headsize:headsize+namesize]
+
+	if isinstance(name, str):
+		name = name.rstrip("\0")
+	else:
+		n = len(name)
+		while n > 0 and name[n-1] == 0:
+			n -= 1
+		name = name[:n]
+
+	ev = event(wd, mask, cookie, name or None)
+	buf = buf[headsize+namesize:]
+
+	return ev, buf
+
+def unpack_events(buf):
+	""" Returns the events from buf as a list. """
+
+	events = []
+
+	while buf:
+		ev, buf = unpack_event(buf)
+		events.append(ev)
+
+	return events
