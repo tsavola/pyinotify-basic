@@ -10,13 +10,13 @@ class dispatcher(asyncore.file_dispatcher):
 	""" Subclasses can monitor inotify watch events by overriding the
 	    handle_watch(event) method. """
 
-	def __init__(self, flags=0, bufsize=65536):
+	def __init__(self, flags=0, bufsize=65536, map=None):
 		""" Initialize an inotify event queue and register it with
 		    asyncore.  flags is passed to inotify.init().  bufsize is
 		    used when receiving events."""
 
 		fd = inotify.init(flags)
-		asyncore.file_dispatcher.__init__(self, fd)
+		asyncore.file_dispatcher.__init__(self, fd, map)
 		self.bufsize = bufsize
 
 	def add_watch(self, name, mask):
