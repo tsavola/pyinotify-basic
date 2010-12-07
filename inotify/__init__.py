@@ -40,27 +40,6 @@ import ctypes.util
 import os
 import struct
 
-def errcheck(result, func, arguments):
-	if result < 0:
-		errno = ctypes.get_errno()
-		raise OSError(errno, os.strerror(errno))
-
-	return result
-
-libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-
-libc.inotify_init.argtypes = []
-libc.inotify_init.errcheck = errcheck
-
-libc.inotify_init1.argtypes = [ctypes.c_int]
-libc.inotify_init1.errcheck = errcheck
-
-libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
-libc.inotify_add_watch.errcheck = errcheck
-
-libc.inotify_rm_watch.argtypes = [ctypes.c_int, ctypes.c_int]
-libc.inotify_rm_watch.errcheck = errcheck
-
 CLOEXEC         = 0o02000000
 NONBLOCK        = 0o00004000
 
@@ -100,18 +79,44 @@ class event(object):
 	def __repr__(self):
 		return "inotify.event(wd=%d, mask=0x%x, cookie=%d, name=%r)" % (self.wd, self.mask, self.cookie, self.name)
 
-def init(flags=0):
-	""" See inotify_init(2) man page. """
+def errcheck(result, func, arguments):
+	if result < 0:
+		errno = ctypes.get_errno()
+		raise OSError(errno, os.strerror(errno))
 
-	if flags:
-		return libc.inotify_init1(flags)
-	else:
+	return result
+
+libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+try:
+	libc.inotify_init1
+except AttributeError:
+	libc.inotify_init.argtypes = []
+	libc.inotify_init.errcheck = errcheck
+
+	def init():
+		""" See inotify_init(2) man page. """
+
 		return libc.inotify_init()
+else:
+	libc.inotify_init1.argtypes = [ctypes.c_int]
+	libc.inotify_init1.errcheck = errcheck
+
+	def init(flags=0):
+		""" See inotify_init1(2) man page. """
+
+		return libc.inotify_init1(flags)
+
+libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+libc.inotify_add_watch.errcheck = errcheck
 
 def add_watch(fd, name, mask):
 	""" See inotify_add_watch(2) man page. """
 
 	return libc.inotify_add_watch(fd, name, mask)
+
+libc.inotify_rm_watch.argtypes = [ctypes.c_int, ctypes.c_int]
+libc.inotify_rm_watch.errcheck = errcheck
 
 def rm_watch(fd, wd):
 	""" See inotify_rm_watch(2) man page. """
