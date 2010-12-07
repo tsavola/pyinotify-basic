@@ -94,9 +94,10 @@ except AttributeError:
 	libc.inotify_init.argtypes = []
 	libc.inotify_init.errcheck = errcheck
 
-	def init():
+	def init(flags=0):
 		""" See inotify_init(2) man page. """
 
+		assert flags == 0
 		return libc.inotify_init()
 else:
 	libc.inotify_init1.argtypes = [ctypes.c_int]
