@@ -38,6 +38,7 @@ __all__ = [
 import ctypes
 import ctypes.util
 import os
+import select
 import struct
 
 CLOEXEC         = 0o02000000
@@ -155,3 +156,43 @@ def unpack_events(buf):
 		events.append(ev)
 
 	return events
+
+class Instance(object):
+
+	def __init__(self, flags=0):
+		self.fd = init(flags)
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, *exc):
+		self.close()
+
+	def __iter__(self):
+		while True:
+			try:
+				r, _, _ = select.select([self.fd], [], [])
+			except select.error as e:
+				if e.args[0] == errno.EINTR:
+					continue
+				raise
+
+			if r:
+				for event in self.read_events():
+					yield event
+
+	def add_watch(self, name, mask):
+		return add_watch(self.fd, name, mask)
+
+	def rm_watch(self, wd):
+		rm_watch(self.fd, wd)
+
+	def read_events(self, bufsize=65536):
+		return unpack_events(os.read(bufsize))
+
+	def close(self):
+		if self.fd is not None:
+			try:
+				os.close(self.fd)
+			finally:
+				self.fd = None
