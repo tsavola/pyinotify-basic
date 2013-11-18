@@ -188,7 +188,7 @@ class Instance(object):
 		rm_watch(self.fd, wd)
 
 	def read_events(self, bufsize=65536):
-		return unpack_events(os.read(bufsize))
+		return unpack_events(os.read(self.fd, bufsize))
 
 	def close(self):
 		if self.fd is not None:
