@@ -115,7 +115,7 @@ libc.inotify_add_watch.errcheck = errcheck
 def add_watch(fd, name, mask):
 	""" See inotify_add_watch(2) man page. """
 
-	return libc.inotify_add_watch(fd, name, mask)
+	return libc.inotify_add_watch(fd, name.encode(), mask)
 
 libc.inotify_rm_watch.argtypes = [ctypes.c_int, ctypes.c_int]
 libc.inotify_rm_watch.errcheck = errcheck
