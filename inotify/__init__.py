@@ -37,6 +37,7 @@ __all__ = [
 
 import ctypes
 import ctypes.util
+import errno
 import os
 import select
 import struct
@@ -82,8 +83,8 @@ class event(object):
 
 def errcheck(result, func, arguments):
 	if result < 0:
-		errno = ctypes.get_errno()
-		raise OSError(errno, os.strerror(errno))
+		n = ctypes.get_errno()
+		raise OSError(n, os.strerror(n))
 
 	return result
 
