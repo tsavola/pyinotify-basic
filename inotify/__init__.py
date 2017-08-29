@@ -73,6 +73,13 @@ ALL_EVENTS = ACCESS | MODIFY | ATTRIB | CLOSE | OPEN | MOVE | CREATE | DELETE | 
 class event(object):
     """ See inotify(7) man page. """
 
+    __slots__ = (
+        "wd",
+        "mask",
+        "cookie",
+        "name",
+    )
+
     def __init__(self, wd, mask, cookie, name):
         self.wd = wd
         self.mask = mask
