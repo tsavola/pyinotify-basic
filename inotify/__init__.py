@@ -104,7 +104,7 @@ try:
     libc.inotify_init1
 except AttributeError:
     libc.inotify_init.argtypes = []
-    libc.inotify_init.errcheck = errcheck
+    libc.inotify_init.errcheck = errcheck  # type: ignore
 
     def init(flags=0):
         """ See inotify_init(2) man page. """
@@ -113,7 +113,7 @@ except AttributeError:
         return libc.inotify_init()
 else:
     libc.inotify_init1.argtypes = [ctypes.c_int]
-    libc.inotify_init1.errcheck = errcheck
+    libc.inotify_init1.errcheck = errcheck  # type: ignore
 
     def init(flags=0):
         """ See inotify_init1(2) man page. """
@@ -121,7 +121,7 @@ else:
         return libc.inotify_init1(flags)
 
 libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
-libc.inotify_add_watch.errcheck = errcheck
+libc.inotify_add_watch.errcheck = errcheck  # type: ignore
 
 
 def add_watch(fd, name, mask):
@@ -131,7 +131,7 @@ def add_watch(fd, name, mask):
 
 
 libc.inotify_rm_watch.argtypes = [ctypes.c_int, ctypes.c_int]
-libc.inotify_rm_watch.errcheck = errcheck
+libc.inotify_rm_watch.errcheck = errcheck  # type: ignore
 
 
 def rm_watch(fd, wd):
